@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Attendance Management System</title>
+<style>
+:root { color-scheme:light; --ink:#172726; --muted:#536663; --brand:#126456; --line:#dce7e3; --bad:#a82d40; }
+* { box-sizing:border-box; }
+body { margin:0; background:radial-gradient(ellipse at 95% 38%,#d9f4f0 0%,transparent 40%), radial-gradient(ellipse at 0% 80%,#e6e6fa 0%,transparent 42%),#f2f6f4; color:var(--ink); font:15px Inter,"Segoe UI",sans-serif; }
+.wrap { width:min(1120px,calc(100% - 40px)); margin-inline:auto; }
+header { background:radial-gradient(ellipse at 90% -15%,#255264 0%,transparent 58%),linear-gradient(122deg,#0b1e21,#102923 70%,#131e34); color:white; padding:28px 0 62px; }
+.brand { display:flex; gap:10px; align-items:center; font-weight:650; }
+.brand span { width:30px; height:30px; display:grid; place-items:center; border-radius:8px; background:#ade9cd; color:#12372b; }
+.hero { display:grid; grid-template-columns:1fr minmax(230px,320px); align-items:center; gap:40px; margin-top:36px; padding:clamp(24px,5vw,56px); border:1px solid #487568; border-radius:24px; background:radial-gradient(ellipse at 97% 3%,#347c80 0%,transparent 55%),radial-gradient(ellipse at 65% 135%,#514779 0%,transparent 56%),linear-gradient(112deg,#12332d,#162e43); }
+h1 { max-width:650px; margin:0; font-size:clamp(32px,5vw,61px); line-height:1; letter-spacing:-.055em; }
+.hero p { color:#d0e6dc; margin:15px 0 24px; }
+.rating { padding:20px; background:#122e28a8; border:1px solid #689686; border-radius:16px; }
+.rating strong { display:block; font-size:40px; margin:2px 0 10px; letter-spacing:-.05em; }
+.rating small { color:#d0e6dc; }
+progress { display:block; width:100%; height:10px; accent-color:#ade9cd; }
+.metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:-31px; position:relative; }
+.metric { background:white; border:1px solid var(--line); border-radius:15px; padding:16px 20px; color:var(--muted); box-shadow:0 8px 22px #244b3d0c; }
+.metric strong { display:block; color:var(--ink); font-size:27px; margin-bottom:3px; }
+nav { display:flex; gap:8px; padding-block:22px; flex-wrap:wrap; }
+button, input, select { font:inherit; }
+button { cursor:pointer; border:1px solid transparent; border-radius:9px; min-height:40px; padding:8px 14px; font-weight:650; }
+nav button { color:var(--ink); border-color:var(--line); background:white; }
+nav button.active, button.act { background:var(--brand); color:white; }
+button.act.hero-action { background:#ade9cd; color:#12372b; }
+button:hover { filter:brightness(.94); }
+button.grey { background:#e9f3ef; color:#194a3e; }
+button.danger { background:#fcebed; color:#922538; }
+button.small { min-height:32px; font-size:13px; }
+:focus-visible { outline:3px solid #22967a; outline-offset:2px; }
+main { padding-bottom:42px; }
+section { display:none; border-radius:18px; background:white; border:1px solid var(--line); padding:clamp(16px,3vw,30px); box-shadow:0 12px 30px #244b3d0a; }
+section.active { display:block; }
+h2 { margin:0 0 18px; font-size:25px; letter-spacing:-.035em; }
+h3 { margin:22px 0 10px; font-size:16px; }
+.row { display:flex; flex-wrap:wrap; gap:9px; align-items:center; margin-bottom:12px; }
+input, select { min-width:0; max-width:100%; min-height:40px; padding:8px 11px; border:1px solid #b7cbc3; border-radius:9px; color:var(--ink); background:white; }
+table { border-collapse:collapse; width:100%; }
+th, td { text-align:left; padding:12px 14px; border-bottom:1px solid var(--line); }
+th { background:#eaf3ef; color:#365a50; white-space:nowrap; font-size:13px; }
+tbody tr:hover { background:#f4f9f6; }
+tbody tr:last-child td { border-bottom:0; }
+.scroll { overflow:auto; border:1px solid var(--line); border-radius:11px; }
+.low { color:var(--bad); font-weight:700; }
+.ok { color:var(--brand); font-weight:700; }
+#msg { display:none; padding:12px; border-radius:10px; margin-bottom:12px; }
+#msg.error { background:#fcebed; color:#922538; }
+#msg.success { background:#dff4e7; color:#145641; }
+.muted { color:var(--muted); font-size:13px; }
+@media (max-width:640px) {
+  .wrap { width:calc(100% - 24px); }
+  .hero { grid-template-columns:1fr; gap:16px; margin-top:20px; }
+  .metrics { gap:6px; }
+  .metric { padding:12px 8px; font-size:12px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand"><span aria-hidden="true">✓</span> Campus Attendance</div>
+    <div class="hero">
+      <div>
+        <h1>Student Attendance Management</h1>
+        <p>Record attendance by class and see who needs to catch up.</p>
+        <button class="act hero-action" onclick="document.querySelector('[data-tab=mark]').click(); document.querySelector('[data-tab=mark]').focus()">Mark attendance</button>
+      </div>
+      <div class="rating">
+        <small>Overall attendance</small>
+        <strong id="summaryRate">—</strong>
+        <progress id="summaryProgress" max="100" aria-label="Overall attendance"></progress>
+        <small id="summarySessions">Loading attendance…</small>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="wrap metrics" aria-label="Attendance summary">
+  <div class="metric"><strong id="summaryStudents">—</strong> Students</div>
+  <div class="metric"><strong id="summarySubjects">—</strong> Subjects</div>
+  <div class="metric"><strong id="summaryLow">—</strong> Below 75%</div>
+</div>
+<nav class="wrap" aria-label="Attendance dashboard">
+  <button class="active" aria-pressed="true" data-tab="students">Students</button>
+  <button aria-pressed="false" data-tab="mark">Mark Attendance</button>
+  <button aria-pressed="false" data-tab="reports">Reports</button>
+  <button aria-pressed="false" data-tab="records">Records</button>
+</nav>
+<div class="wrap" id="msg" role="status"></div>
+<main class="wrap">
+
+<!-- STUDENTS -->
+<section id="students" class="active">
+  <h2>Manage Students</h2>
+  <div class="row">
+    <input id="s_roll" placeholder="Roll No (e.g. CU107)">
+    <input id="s_name" placeholder="Name">
+    <input id="s_dept" placeholder="Department">
+    <input id="s_email" placeholder="Email">
+    <button class="act" onclick="addStudent()">Add Student</button>
+  </div>
+  <div class="row">
+    <input id="s_search" placeholder="Search name / roll / dept">
+    <button class="act grey" onclick="searchStudents()">Search</button>
+    <button class="act grey" onclick="loadStudents()">Show All</button>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>ID</th><th>Roll No</th><th>Name</th><th>Dept</th><th>Email</th><th>Actions</th></tr></thead>
+    <tbody id="studentTable"></tbody>
+  </table></div>
+</section>
+
+<!-- MARK -->
+<section id="mark">
+  <h2>Mark Attendance</h2>
+  <div class="row">
+    <select id="m_student"></select>
+    <select id="m_subject"></select>
+    <input type="date" id="m_date">
+    <select id="m_status"><option value="P">Present</option><option value="A">Absent</option></select>
+    <button class="act" onclick="markAttendance()">Save</button>
+  </div>
+  <p class="muted">Saving again for the same student, subject and date updates the old entry.</p>
+</section>
+
+<!-- REPORTS -->
+<section id="reports">
+  <h2>Reports</h2>
+  <h3>Students below <input id="r_limit" type="number" value="75" style="width:70px">% overall</h3>
+  <button class="act" onclick="loadLow()">Show Low Attendance</button>
+  <div class="scroll"><table>
+    <thead><tr><th>Roll No</th><th>Name</th><th>Present</th><th>Total</th><th>%</th></tr></thead>
+    <tbody id="lowTable"></tbody>
+  </table></div>
+
+  <h3>Overall attendance of all students</h3>
+  <button class="act" onclick="loadOverall()">Show Overall</button>
+  <div class="scroll"><table>
+    <thead><tr><th>Roll No</th><th>Name</th><th>Present</th><th>Total</th><th>%</th></tr></thead>
+    <tbody id="overallTable"></tbody>
+  </table></div>
+
+  <h3>Subject-wise attendance of one student</h3>
+  <div class="row">
+    <select id="r_student"></select>
+    <button class="act" onclick="loadSubjectWise()">Show</button>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Subject</th><th>Present</th><th>Total</th><th>%</th></tr></thead>
+    <tbody id="subjectTable"></tbody>
+  </table></div>
+</section>
+
+<!-- RECORDS -->
+<section id="records">
+  <h2>Date-wise and Subject-wise Records</h2>
+  <div class="row">
+    <input type="date" id="d_date">
+    <button class="act" onclick="loadByDate()">Show by Date</button>
+    <select id="d_subject"></select>
+    <button class="act" onclick="loadBySubject()">Show by Subject</button>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Status</th></tr></thead>
+    <tbody id="recordTable"></tbody>
+  </table></div>
+</section>
+
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character =>
+  ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'})[character]);
+let studentsCache = [], subjectsCache = [];
+
+function show(text, type) {
+  const m = $('msg'); m.className = type; m.textContent = text;
+  setTimeout(() => { m.className = ''; m.style.display = 'none'; }, 3500);
+  m.style.display = 'block';
+}
+
+async function api(url, method = 'GET', body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed (' + res.status + ')');
+  return data;
+}
+
+// ---------- tabs ----------
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-pressed', String(x === b)); });
+  document.querySelectorAll('section').forEach(x => x.classList.remove('active'));
+  b.classList.add('active'); $(b.dataset.tab).classList.add('active');
+});
+
+// ---------- students ----------
+function renderStudents(list) {
+  $('studentTable').innerHTML = list.map(s => `
+    <tr><td>${s.id}</td><td>${escapeHtml(s.rollNo)}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.department)}</td><td>${escapeHtml(s.email || '')}</td>
+    <td><button class="act small" onclick="editStudent(${s.id})">Edit</button>
+        <button class="act small danger" onclick="deleteStudent(${s.id})">Delete</button></td></tr>`).join('');
+}
+async function loadStudents() {
+  studentsCache = await api('/api/students');
+  summaryStudents.textContent = studentsCache.length;
+  renderStudents(studentsCache);
+  const options = studentsCache.map(s => `<option value="${s.id}">${escapeHtml(s.rollNo)} - ${escapeHtml(s.name)}</option>`).join('');
+  $('m_student').innerHTML = options; $('r_student').innerHTML = options;
+}
+async function searchStudents() {
+  const k = $('s_search').value.trim();
+  if (!k) return loadStudents();
+  renderStudents(await api('/api/students/search?keyword=' + encodeURIComponent(k)));
+}
+async function addStudent() {
+  try {
+    await api('/api/students', 'POST', { rollNo: $('s_roll').value, name: $('s_name').value,
+      department: $('s_dept').value, email: $('s_email').value });
+    ['s_roll','s_name','s_dept','s_email'].forEach(i => $(i).value = '');
+    show('Student added', 'success'); loadStudents();
+  } catch (e) { show(e.message, 'error'); }
+}
+async function editStudent(id) {
+  const s = studentsCache.find(x => x.id === id);
+  const name = prompt('Name:', s.name); if (name === null) return;
+  const dept = prompt('Department:', s.department); if (dept === null) return;
+  const email = prompt('Email:', s.email || ''); if (email === null) return;
+  try {
+    await api('/api/students/' + id, 'PUT', { rollNo: s.rollNo, name, department: dept, email });
+    show('Student updated', 'success'); loadStudents();
+  } catch (e) { show(e.message, 'error'); }
+}
+async function deleteStudent(id) {
+  if (!confirm('Delete this student and all their attendance?')) return;
+  try { await api('/api/students/' + id, 'DELETE'); show('Student deleted', 'success'); loadStudents(); refreshSummary(); loadLow(); }
+  catch (e) { show(e.message, 'error'); }
+}
+
+// ---------- subjects ----------
+async function loadSubjects() {
+  subjectsCache = await api('/api/subjects');
+  summarySubjects.textContent = subjectsCache.length;
+  const options = subjectsCache.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  $('m_subject').innerHTML = options; $('d_subject').innerHTML = options;
+}
+
+// ---------- mark ----------
+async function markAttendance() {
+  try {
+    await api('/api/attendance', 'POST', { studentId: +$('m_student').value, subjectId: +$('m_subject').value,
+      date: $('m_date').value, status: $('m_status').value });
+    show('Attendance saved', 'success'); refreshSummary(); loadLow();
+  } catch (e) { show(e.message, 'error'); }
+}
+
+// ---------- reports ----------
+const pctCell = p => `<td class="${p < 75 ? 'low' : 'ok'}">${p}%</td>`;
+function studentRows(list) {
+  return list.map(r => `<tr><td>${escapeHtml(r.rollNo)}</td><td>${escapeHtml(r.studentName)}</td><td>${r.presentClasses}</td><td>${r.totalClasses}</td>${pctCell(r.percentage)}</tr>`).join('')
+    || '<tr><td colspan="5">No students found</td></tr>';
+}
+async function loadLow() {
+  try { $('lowTable').innerHTML = studentRows(await api('/api/attendance/low?threshold=' + $('r_limit').value)); }
+  catch (e) { show(e.message, 'error'); }
+}
+async function loadOverall() {
+  try { $('overallTable').innerHTML = studentRows(await api('/api/attendance/percentage')); }
+  catch (e) { show(e.message, 'error'); }
+}
+async function loadSubjectWise() {
+  try {
+    const list = await api('/api/attendance/percentage/' + $('r_student').value);
+    $('subjectTable').innerHTML = list.map(r => `<tr><td>${escapeHtml(r.subjectName)}</td><td>${r.presentClasses}</td><td>${r.totalClasses}</td>${pctCell(r.percentage)}</tr>`).join('')
+      || '<tr><td colspan="4">No attendance yet</td></tr>';
+  } catch (e) { show(e.message, 'error'); }
+}
+
+// ---------- records ----------
+function renderRecords(list) {
+  $('recordTable').innerHTML = list.map(r => `<tr><td>${r.date}</td><td>${escapeHtml(r.studentName)}</td><td>${escapeHtml(r.subjectName)}</td>
+    <td class="${r.status === 'P' ? 'ok' : 'low'}">${r.status === 'P' ? 'Present' : 'Absent'}</td></tr>`).join('')
+    || '<tr><td colspan="4">No records</td></tr>';
+}
+async function loadByDate() {
+  try { renderRecords(await api('/api/attendance/date/' + $('d_date').value)); } catch (e) { show(e.message, 'error'); }
+}
+async function loadBySubject() {
+  try { renderRecords(await api('/api/attendance/subject/' + $('d_subject').value)); } catch (e) { show(e.message, 'error'); }
+}
+
+// ---------- start ----------
+const today = new Date().toISOString().slice(0, 10);
+$('m_date').value = today; $('d_date').value = '2026-10-19';
+async function refreshSummary() {
+  try {
+    const [rows, low] = await Promise.all([
+      api('/api/attendance/percentage'),
+      api('/api/attendance/low?threshold=75')
+    ]);
+    const total = rows.reduce((sum, row) => sum + row.totalClasses, 0);
+    const present = rows.reduce((sum, row) => sum + row.presentClasses, 0);
+    const rate = total ? present * 100 / total : 0;
+    $('summaryRate').textContent = total ? rate.toFixed(1) + '%' : '—';
+    $('summaryProgress').value = rate;
+    $('summaryLow').textContent = low.length;
+    $('summarySessions').textContent = total ? present + ' present out of ' + total + ' marks' : 'No attendance recorded yet';
+  } catch (error) {
+    $('summarySessions').textContent = 'Attendance summary unavailable';
+  }
+}
+Promise.all([loadStudents(), loadSubjects()]).catch(error => show(error.message, 'error'));
+loadLow();
+refreshSummary();
+</script>
+</body>
+</html>
+
+
+
+
+
+
